@@ -7,12 +7,11 @@ import Main from "../Components/Main";
 import Plot from "react-plotly.js";
 import { evaluate } from "mathjs";
 
-// Importamos los servicios (manteniendo firmas originales)
 import {
   metodoPuntoFijo,
   metodoNewtonRaphson,
   metodoSecante,
-  metodoBiseccion,
+  metodoBiseccion
 } from "../Services/numericalMethods";
 
 import SlidingToast from "../Components/SlidingToast";
@@ -20,25 +19,22 @@ import SlidingToast from "../Components/SlidingToast";
 const AppLogic: React.FC = () => {
   const [selectedService, setSelectedService] = useState<ServiceId>("punto-fijo");
 
-  // Entradas por servicio
   const [entriesByService, setEntriesByService] = useState<Record<ServiceId, Entry[]>>({
     "punto-fijo": [],
     "newton-raphson": [],
     secante: [],
     biseccion: [],
-    future: [],
+    future: []
   });
 
-  // Resultados por servicio
   const [resultsByService, setResultsByService] = useState<Record<ServiceId, any[]>>({
     "punto-fijo": [],
     "newton-raphson": [],
     secante: [],
     biseccion: [],
-    future: [],
+    future: []
   });
 
-  // Notificaciones y explorador
   const [toastOpen, setToastOpen] = useState(false);
   const [toastMsg, setToastMsg] = useState<React.ReactNode>(null);
   const [explorerOpen, setExplorerOpen] = useState(false);
@@ -48,78 +44,96 @@ const AppLogic: React.FC = () => {
   const [rangeMax, setRangeMax] = useState(20);
   const [angleMode, setAngleMode] = useState<"rad" | "deg">("rad");
 
-  /* ----------- Handlers ----------- */
   const handleAddEntry = (entry: Entry) => {
-    setEntriesByService((prev) => ({
+    setEntriesByService(prev => ({
       ...prev,
-      [selectedService]: [...prev[selectedService], entry],
+      [selectedService]: [...prev[selectedService], entry]
     }));
   };
 
   const handleUpdateEntry = (entryId: string, field: keyof Entry, value: string) => {
-    setEntriesByService((prev) => ({
+    setEntriesByService(prev => ({
       ...prev,
-      [selectedService]: prev[selectedService].map((e) =>
+      [selectedService]: prev[selectedService].map(e =>
         e.id === entryId ? { ...e, [field]: value } : e
-      ),
+      )
     }));
   };
 
   const handleDeleteEntry = (entryId: string) => {
-    setEntriesByService((prev) => ({
+    setEntriesByService(prev => ({
       ...prev,
-      [selectedService]: prev[selectedService].filter((e) => e.id !== entryId),
+      [selectedService]: prev[selectedService].filter(e => e.id !== entryId)
     }));
-    setResultsByService((prev) => ({
+    setResultsByService(prev => ({
       ...prev,
-      [selectedService]: prev[selectedService].filter((r) => r.entryId !== entryId),
+      [selectedService]: prev[selectedService].filter(r => r.entryId !== entryId)
     }));
   };
 
-  /* ----------- Calcular ----------- */
+  // Normalización opcional (descomenta si quieres permitir 2x -> 2*x)
+  // const normalizeExpr = (s: string) =>
+  //   s
+  //     .replace(/(\d)([a-zA-Z(])/g, "$1*$2")
+  //     .replace(/([a-zA-Z)0-9])(\()/g, "$1*(");
+
+  const parseTol = (entry: Entry, fallbackPercent = 1) => {
+    const p = parseFloat(entry.error || `${fallbackPercent}`);
+    const pct = isNaN(p) || p <= 0 ? fallbackPercent : p;
+    return pct / 100; // fracción
+  };
+
   const handleCalcular = (entry: Entry) => {
     let result: any = null;
+    const tol = parseTol(entry, 1);
+    const respuesta = entry.respuesta ? parseFloat(entry.respuesta) : undefined;
 
     try {
       switch (selectedService) {
         case "punto-fijo":
           result = metodoPuntoFijo(
-            parseFloat(entry.x0 || "0"), // x0 primero
-            entry.funcion!, // luego g(x)
-            0.01,
-            50
+            parseFloat(entry.x0 || "0"),
+            entry.funcion!,
+            tol,
+            50,
+            entry.a ? parseFloat(entry.a) : undefined,
+            entry.b ? parseFloat(entry.b) : undefined,
+            respuesta
           );
           break;
         case "newton-raphson":
           result = metodoNewtonRaphson(
-            parseFloat(entry.x0 || "0"), // x0
-            entry.funcion!, // f(x)
-            entry.derivada!, // f'(x)
-            0.01,
-            50
+            parseFloat(entry.x0 || "0"),
+            entry.funcion!,
+            entry.derivada!,
+            tol,
+            50,
+            respuesta
           );
           break;
         case "secante":
           result = metodoSecante(
-            parseFloat(entry.x0 || "0"), // x0
-            parseFloat(entry.x1 || "0"), // x1
-            entry.funcion!, // f(x)
-            0.01,
-            50
+            parseFloat(entry.x0 || "0"),
+            parseFloat(entry.x1 || "0"),
+            entry.funcion!,
+            tol,
+            50,
+            respuesta
           );
           break;
         case "biseccion":
           result = metodoBiseccion(
-            parseFloat(entry.a || "0"), // a
-            parseFloat(entry.b || "0"), // b
-            entry.funcion!, // f(x)
-            0.01,
-            50
+            parseFloat(entry.a || "0"),
+            parseFloat(entry.b || "0"),
+            entry.funcion!,
+            tol,
+            50,
+            respuesta
           );
           break;
       }
 
-      if (result.mensaje) {
+      if (result?.mensaje) {
         setToastMsg(result.mensaje);
         setLastFunction(entry.funcion || "");
         setToastOpen(true);
@@ -129,16 +143,12 @@ const AppLogic: React.FC = () => {
       const newResult = {
         ...result,
         entryId: entry.id,
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toLocaleString()
       };
 
-      // Reemplazar si ya existe resultado de esa entrada
-      setResultsByService((prev) => {
-        const updated = prev[selectedService].filter((r) => r.entryId !== entry.id);
-        return {
-          ...prev,
-          [selectedService]: [...updated, newResult],
-        };
+      setResultsByService(prev => {
+        const updated = prev[selectedService].filter(r => r.entryId !== entry.id);
+        return { ...prev, [selectedService]: [...updated, newResult] };
       });
     } catch (err: any) {
       setToastMsg(`Error en el cálculo: ${err.message}`);
@@ -164,10 +174,12 @@ const AppLogic: React.FC = () => {
           onCalcularBiseccion={handleCalcular}
         />
 
-        <Main selectedService={selectedService} results={resultsByService[selectedService]} />
+        <Main
+          selectedService={selectedService}
+          results={resultsByService[selectedService]}
+        />
       </div>
 
-      {/* Toast */}
       <SlidingToast
         show={toastOpen}
         title="Problema detectado"
@@ -180,20 +192,18 @@ const AppLogic: React.FC = () => {
         onClose={() => setToastOpen(false)}
       />
 
-      {/* Explorador de función */}
       {explorerOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded shadow-xl w-[850px] max-w-full">
             <h2 className="text-lg font-bold mb-4">Explorador de función</h2>
 
-            {/* Controles */}
             <div className="flex flex-wrap gap-4 mb-4">
               <div>
                 <label className="block text-xs font-medium">Mínimo X</label>
                 <input
                   type="number"
                   value={rangeMin}
-                  onChange={(e) => setRangeMin(parseFloat(e.target.value))}
+                  onChange={e => setRangeMin(parseFloat(e.target.value))}
                   className="px-2 py-1 border rounded w-24"
                 />
               </div>
@@ -202,7 +212,7 @@ const AppLogic: React.FC = () => {
                 <input
                   type="number"
                   value={rangeMax}
-                  onChange={(e) => setRangeMax(parseFloat(e.target.value))}
+                  onChange={e => setRangeMax(parseFloat(e.target.value))}
                   className="px-2 py-1 border rounded w-24"
                 />
               </div>
@@ -210,7 +220,7 @@ const AppLogic: React.FC = () => {
                 <label className="mr-2 text-sm">Modo:</label>
                 <select
                   value={angleMode}
-                  onChange={(e) => setAngleMode(e.target.value as "rad" | "deg")}
+                  onChange={e => setAngleMode(e.target.value as "rad" | "deg")}
                   className="px-2 py-1 border rounded"
                 >
                   <option value="rad">Radianes</option>
@@ -234,8 +244,8 @@ const AppLogic: React.FC = () => {
                   }),
                   type: "scatter",
                   mode: "lines",
-                  line: { color: "blue", shape: "spline" },
-                },
+                  line: { color: "blue", shape: "spline" }
+                }
               ]}
               layout={{
                 autosize: true,
@@ -243,14 +253,14 @@ const AppLogic: React.FC = () => {
                 height: 500,
                 margin: { l: 60, r: 20, t: 20, b: 50 },
                 xaxis: { title: "x", zeroline: true, gridcolor: "#ddd" },
-                yaxis: { title: "f(x)", zeroline: true, gridcolor: "#ddd" },
+                yaxis: { title: "f(x)", zeroline: true, gridcolor: "#ddd" }
               }}
               style={{ width: "100%", height: "100%" }}
               useResizeHandler={true}
             />
 
             <p className="mt-3 text-sm text-gray-600">
-              💡 Busca intervalos donde la curva cruce el eje X (f(x) cambia de signo).
+              💡 Busca intervalos donde f(x) cambie de signo para métodos con intervalo.
             </p>
 
             <button

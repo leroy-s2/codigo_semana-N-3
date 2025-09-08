@@ -34,23 +34,33 @@ const Main: React.FC<MainProps> = ({ selectedService, results }) => {
       <h2 className="text-2xl font-bold mb-4">{getServiceTitle()}</h2>
 
       <div className="bg-white shadow-md rounded-xl p-6 space-y-6">
-        {/* Datos iniciales */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {last.funcion && <Info label="Función" value={last.funcion} />}
           {last.a !== undefined && last.b !== undefined && (
             <Info label="Intervalo" value={`[${last.a}, ${last.b}]`} />
           )}
           {last.x0 !== undefined && <Info label="x₀" value={last.x0} />}
           {last.x1 !== undefined && <Info label="x₁" value={last.x1} />}
-          {last.errorPermitido && (
-            <Info label="Error permitido" value={`${last.errorPermitido}%`} />
+          {last.errorPermitido !== undefined && (
+            <Info label="Error permitido" value={`${last.errorPermitido.toFixed(2)}%`} />
+          )}
+          {last.residual !== undefined && (
+            <Info label="f(raíz)" value={Number.isFinite(last.residual) ? last.residual.toExponential(6) : "—"} />
+          )}
+          {last.respuestaUsuario !== undefined && (
+            <Info label="Respuesta usuario" value={last.respuestaUsuario} />
+          )}
+          {last.errorRealAbs !== undefined && (
+            <Info label="Error real (abs)" value={last.errorRealAbs.toExponential(6)} />
+          )}
+          {last.errorRealRelPercent !== undefined && (
+            <Info label="Error real (%)" value={last.errorRealRelPercent.toFixed(6) + "%"} />
           )}
           {last.raiz !== null && (
             <Info label="Raíz aproximada" value={last.raiz.toFixed(6)} highlight />
           )}
         </div>
 
-        {/* Gráfica */}
         {last.plot && (
           <Plot
             data={[
@@ -76,7 +86,6 @@ const Main: React.FC<MainProps> = ({ selectedService, results }) => {
           />
         )}
 
-        {/* Tabla */}
         {last.iteraciones && (
           <div>
             <h3 className="font-semibold mb-2 text-blue-700">Iteraciones</h3>
@@ -88,6 +97,7 @@ const Main: React.FC<MainProps> = ({ selectedService, results }) => {
                     <Th>X₀</Th>
                     {last.x1 !== undefined || last.a !== undefined ? <Th>X₁/Xu</Th> : null}
                     <Th>Xr/x</Th>
+                    <Th>f(x)</Th>
                     <Th>Error (%)</Th>
                   </tr>
                 </thead>
@@ -100,6 +110,11 @@ const Main: React.FC<MainProps> = ({ selectedService, results }) => {
                         <Td>{it.x1 ?? "-"}</Td>
                       ) : null}
                       <Td>{it.x?.toFixed ? it.x.toFixed(6) : it.x}</Td>
+                      <Td>
+                        {typeof it.fx === "number" && isFinite(it.fx)
+                          ? it.fx.toExponential(3)
+                          : "-"}
+                      </Td>
                       <Td>
                         {typeof it.error === "number"
                           ? (it.error * 100).toFixed(6) + "%"

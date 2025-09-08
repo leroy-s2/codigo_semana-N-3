@@ -5,6 +5,7 @@ interface SecanteFormProps {
   funcion: string;
   x0: string;
   x1: string;
+  error: string;
   onChange: (field: string, value: string) => void;
   onSubmit: () => void;
   canSubmit: boolean;
@@ -15,21 +16,22 @@ const symbols = [
   { label: "e", insert: "e" },
   { label: "√()", insert: "sqrt()" },
   { label: "^", insert: "^" },
-  { label: "()", insert: "()" },
+  { label: "()", insert: "()" }
 ];
 
 const functions = [
   "sin()", "cos()", "tan()", "cot()", "asin()", "acos()", "atan()",
-  "sinh()", "cosh()", "tanh()", "exp()", "log()", "log10()", "abs()",
+  "sinh()", "cosh()", "tanh()", "exp()", "log()", "log10()", "abs()"
 ];
 
 const SecanteForm: React.FC<SecanteFormProps> = ({
   funcion,
   x0,
   x1,
+  error,
   onChange,
   onSubmit,
-  canSubmit,
+  canSubmit
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -43,9 +45,8 @@ const SecanteForm: React.FC<SecanteFormProps> = ({
         Función f(x):
       </label>
 
-      {/* Panel de símbolos */}
       <div className="flex flex-wrap gap-2 mb-2">
-        {symbols.map((s) => (
+        {symbols.map(s => (
           <button
             key={s.label}
             type="button"
@@ -66,7 +67,7 @@ const SecanteForm: React.FC<SecanteFormProps> = ({
 
       {showAdvanced && (
         <div className="grid grid-cols-3 gap-2 mb-2">
-          {functions.map((fn) => (
+          {functions.map(fn => (
             <button
               key={fn}
               type="button"
@@ -82,7 +83,7 @@ const SecanteForm: React.FC<SecanteFormProps> = ({
       <input
         type="text"
         value={funcion}
-        onChange={(e) => onChange("funcion", e.target.value)}
+        onChange={e => onChange("funcion", e.target.value)}
         placeholder="Ej: x^3 - x - 2"
         className="w-full px-3 py-2 border rounded focus:ring-1 focus:border-blue-400"
       />
@@ -93,7 +94,7 @@ const SecanteForm: React.FC<SecanteFormProps> = ({
           <input
             type="number"
             value={x0}
-            onChange={(e) => onChange("x0", e.target.value)}
+            onChange={e => onChange("x0", e.target.value)}
             className="w-full px-3 py-2 border rounded focus:ring-1 focus:border-blue-400"
           />
         </div>
@@ -102,10 +103,25 @@ const SecanteForm: React.FC<SecanteFormProps> = ({
           <input
             type="number"
             value={x1}
-            onChange={(e) => onChange("x1", e.target.value)}
+            onChange={e => onChange("x1", e.target.value)}
             className="w-full px-3 py-2 border rounded focus:ring-1 focus:border-blue-400"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-700">
+          Error permitido (%) :
+        </label>
+        <input
+          type="number"
+          min="0"
+          step="0.0001"
+          value={error}
+          onChange={e => onChange("error", e.target.value)}
+          placeholder="Ej: 1"
+          className="w-full px-3 py-2 border rounded focus:ring-1 focus:border-blue-400"
+        />
       </div>
 
       <button
